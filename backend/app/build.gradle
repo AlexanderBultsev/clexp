@@ -1,0 +1,8 @@
+dependencies {
+    implementation project(':common')
+    implementation project(':user-service')
+    implementation project(':post-service')
+    implementation project(':chat-service')
+
+    // Дополнительные зависимости
+}
