@@ -4,5 +4,6 @@ dependencies {
     implementation project(':post-service')
     implementation project(':chat-service')
 
-    // Дополнительные зависимости
+    implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
+    runtimeOnly 'org.postgresql:r2dbc-postgresql'
 }

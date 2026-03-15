@@ -7,5 +7,8 @@ tasks.named('jar') {
 }
 
 dependencies {
-    // Здесь зависимости, специфичные для common модуля
+    implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    
+    runtimeOnly 'org.postgresql:r2dbc-postgresql'
 }
