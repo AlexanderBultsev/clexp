@@ -6,6 +6,9 @@ DROP TABLE IF EXISTS user_interests CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS languages CASCADE;
 DROP TABLE IF EXISTS interests CASCADE;
+DROP TABLE IF EXISTS likes CASCADE;
+DROP TABLE IF EXISTS comments CASCADE;
+DROP TABLE IF EXISTS posts CASCADE;
 
 -- Таблица пользователей
 CREATE TABLE IF NOT EXISTS users (
@@ -13,80 +16,100 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    first_name VARCHAR(100) NOT NULL,
-    last_name VARCHAR(100),
-    age INTEGER NOT NULL CHECK (age >= 18),
+    full_name VARCHAR(100),
+    age INTEGER,
     location VARCHAR(200),
     bio TEXT,
-    profile_picture_url VARCHAR(500),
+    avatar_url VARCHAR(500),
     role VARCHAR(20) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
     last_login_at TIMESTAMP
 );
 
 -- Таблица языков
 CREATE TABLE IF NOT EXISTS languages (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     code VARCHAR(10) NOT NULL UNIQUE,
-    name VARCHAR(100) NOT NULL,
-    native_name VARCHAR(100)
-);
-
--- Таблица интересов
-CREATE TABLE IF NOT EXISTS interests (
-    id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    name VARCHAR(100) NOT NULL
 );
 
 -- Связь пользователя с языками
 CREATE TABLE IF NOT EXISTS user_languages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    language_id BIGINT NOT NULL REFERENCES languages(id) ON DELETE CASCADE,
+    language_id UUID NOT NULL REFERENCES languages(id) ON DELETE CASCADE,
     status VARCHAR(20) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, language_id)
+);
+
+-- Таблица интересов
+CREATE TABLE IF NOT EXISTS interests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(100) NOT NULL UNIQUE
 );
 
 -- Связь пользователя с интересами
 CREATE TABLE IF NOT EXISTS user_interests (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    interest_id BIGINT NOT NULL REFERENCES interests(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    interest_id UUID NOT NULL REFERENCES interests(id) ON DELETE CASCADE,
     UNIQUE(user_id, interest_id)
 );
 
+CREATE TABLE IF NOT EXISTS posts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    media_urls TEXT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS comments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS likes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP
+);
+
 -- Начальные данные (языки)
-INSERT INTO languages (code, name, native_name) VALUES
-    ('en', 'English', 'English'),
-    ('ru', 'Russian', 'Русский'),
-    ('es', 'Spanish', 'Español'),
-    ('fr', 'French', 'Français'),
-    ('de', 'German', 'Deutsch'),
-    ('it', 'Italian', 'Italiano'),
-    ('pt', 'Portuguese', 'Português'),
-    ('zh', 'Chinese', '中文'),
-    ('ja', 'Japanese', '日本語'),
-    ('ko', 'Korean', '한국어'),
-    ('ar', 'Arabic', 'العربية'),
-    ('hi', 'Hindi', 'हिन्दी'),
-    ('tr', 'Turkish', 'Türkçe'),
-    ('nl', 'Dutch', 'Nederlands'),
-    ('pl', 'Polish', 'Polski'),
-    ('uk', 'Ukrainian', 'Українська'),
-    ('he', 'Hebrew', 'עברית'),
-    ('sv', 'Swedish', 'Svenska'),
-    ('da', 'Danish', 'Dansk'),
-    ('fi', 'Finnish', 'Suomi'),
-    ('no', 'Norwegian', 'Norsk'),
-    ('cs', 'Czech', 'Čeština'),
-    ('hu', 'Hungarian', 'Magyar'),
-    ('el', 'Greek', 'Ελληνικά'),
-    ('th', 'Thai', 'ไทย'),
-    ('vi', 'Vietnamese', 'Tiếng Việt')
+INSERT INTO languages (code, name) VALUES
+    ('en', 'English'),
+    ('ru', 'Russian'),
+    ('es', 'Spanish'),
+    ('fr', 'French'),
+    ('de', 'German'),
+    ('it', 'Italian'),
+    ('pt', 'Portuguese'),
+    ('zh', 'Chinese'),
+    ('ja', 'Japanese'),
+    ('ko', 'Korean'),
+    ('ar', 'Arabic'),
+    ('hi', 'Hindi'),
+    ('tr', 'Turkish'),
+    ('nl', 'Dutch'),
+    ('pl', 'Polish'),
+    ('uk', 'Ukrainian'),
+    ('he', 'Hebrew'),
+    ('sv', 'Swedish'),
+    ('da', 'Danish'),
+    ('fi', 'Finnish'),
+    ('no', 'Norwegian'),
+    ('cs', 'Czech'),
+    ('hu', 'Hungarian'),
+    ('el', 'Greek'),
+    ('th', 'Thai'),
+    ('vi', 'Vietnamese')
 ON CONFLICT (code) DO NOTHING;
 
 -- Начальные данные (интересы)

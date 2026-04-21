@@ -2,7 +2,6 @@ package com.clexp.common.model;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,12 +21,11 @@ public class User {
     private String username;
     private String email;
     private String passwordHash;
-    private String firstName;
-    private String lastName;
+    private String fullName;
     private Integer age;
     private String location;
     private String bio;
-    private String profilePictureUrl;
+    private String AvatarUrl;
     private UserRole role;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

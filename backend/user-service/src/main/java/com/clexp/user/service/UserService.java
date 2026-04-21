@@ -9,26 +9,26 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.clexp.auth.repository.UserRepository;
 import com.clexp.common.dto.InterestDto;
 import com.clexp.common.dto.LanguageDto;
-import com.clexp.common.dto.LanguagePreference;
-import com.clexp.common.dto.UserUpdateRequest;
-import com.clexp.common.dto.UserResponse;
 import com.clexp.common.exception.BusinessException;
 import com.clexp.common.model.Interest;
 import com.clexp.common.model.Language;
 import com.clexp.common.model.User;
-import com.clexp.common.model.UserInterest;
-import com.clexp.common.model.UserLanguage;
-import com.clexp.common.model.UserLanguageStatus;
+import com.clexp.user.dto.LanguagePreference;
+import com.clexp.user.dto.UserResponse;
+import com.clexp.user.dto.UserUpdateRequest;
+import com.clexp.user.model.UserInterest;
+import com.clexp.user.model.UserLanguage;
+import com.clexp.user.model.UserLanguageStatus;
 import com.clexp.user.repository.InterestRepository;
 import com.clexp.user.repository.LanguageRepository;
 import com.clexp.user.repository.UserInterestRepository;
 import com.clexp.user.repository.UserLanguageRepository;
-import com.clexp.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +48,7 @@ public class UserService {
 
     public Mono<UserResponse> getUser(UUID userId) {
         return userRepository.findById(userId)
-            .switchIfEmpty(Mono.error(new BusinessException("User not found")))
+            .switchIfEmpty(Mono.error(new BusinessException("User not found", HttpStatus.NOT_FOUND)))
             .flatMap(user -> 
                 Mono.zip(
                     loadUserLanguages(userId),
@@ -67,19 +67,11 @@ public class UserService {
         log.info("Updating user: {}", userId);
         
         return userRepository.findById(userId)
-            .switchIfEmpty(Mono.error(new BusinessException("User not found")))
+            .switchIfEmpty(Mono.error(new BusinessException("User not found", HttpStatus.NOT_FOUND)))
             .flatMap(user -> {
-                // Обновляем только те поля, которые пришли в запросе
-                if (request.getLocation() != null) {
-                    user.setLocation(request.getLocation());
-                }
-                if (request.getBio() != null) {
-                    user.setBio(request.getBio());
-                }
-                if (request.getProfilePictureUrl() != null) {
-                    user.setProfilePictureUrl(request.getProfilePictureUrl());
-                }
-                
+                user.setLocation(request.getLocation());
+                user.setBio(request.getBio());
+                user.setAvatarUrl(request.getAvatarUrl());                
                 user.setUpdatedAt(LocalDateTime.now());
                 
                 return userRepository.save(user)
@@ -119,7 +111,7 @@ public class UserService {
             .then();
     }
 
-    private Mono<Void> updateUserInterests(UUID userId, Set<Long> interestIds) {
+    private Mono<Void> updateUserInterests(UUID userId, Set<UUID> interestIds) {
         if (interestIds == null) {
             return Mono.empty();
         }
@@ -170,7 +162,6 @@ public class UserService {
                 .id(lang.getId())
                 .code(lang.getCode())
                 .name(lang.getName())
-                .nativeName(lang.getNativeName())
                 .build())
             .collect(Collectors.toSet());
         
@@ -180,7 +171,6 @@ public class UserService {
                 .id(lang.getId())
                 .code(lang.getCode())
                 .name(lang.getName())
-                .nativeName(lang.getNativeName())
                 .build())
             .collect(Collectors.toSet());
         
@@ -194,12 +184,11 @@ public class UserService {
         return UserResponse.builder()
             .id(user.getId())
             .username(user.getUsername())
-            .firstName(user.getFirstName())
-            .lastName(user.getLastName())
+            .fullName(user.getFullName())
             .age(user.getAge())
             .location(user.getLocation())
             .bio(user.getBio())
-            .profilePictureUrl(user.getProfilePictureUrl())
+            .avatarUrl(user.getAvatarUrl())
             .lastLoginAt(user.getLastLoginAt())
             .knownLanguages(knownLanguages)
             .learningLanguages(learningLanguages)

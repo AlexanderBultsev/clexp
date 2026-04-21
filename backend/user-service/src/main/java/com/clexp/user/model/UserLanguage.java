@@ -1,8 +1,7 @@
-package com.clexp.common.model;
+package com.clexp.user.model;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,9 +13,11 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("interests")
-public class Interest {
+@Table("user_languages")
+public class UserLanguage {
     @Id
     private UUID id;
-    private String name;
+    private UUID userId;
+    private UUID languageId;
+    private UserLanguageStatus status;
 }

@@ -3,11 +3,12 @@ package com.clexp.common.dto;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.UUID;
+
 @Data
 @Builder
 public class LanguageDto {
-    private Long id;
+    private UUID id;
     private String code;
     private String name;
-    private String nativeName;
 }
