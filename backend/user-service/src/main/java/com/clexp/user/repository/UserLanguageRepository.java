@@ -15,5 +15,5 @@ public interface UserLanguageRepository extends R2dbcRepository<UserLanguage, UU
 
     Flux<UserLanguage> findAllByUserIdAndStatus(UUID userId, UserLanguageStatus status);
 
-    Mono<Void> deleteAllByUserId(UUID userId);
+    Mono<Void> deleteAllByUserIdAndStatus(UUID userId, UserLanguageStatus status);
 }

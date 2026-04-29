@@ -17,7 +17,6 @@ import com.clexp.common.model.Language;
 import com.clexp.common.model.User;
 import com.clexp.common.repository.InterestRepository;
 import com.clexp.common.repository.LanguageRepository;
-import com.clexp.user.dto.LanguagePreference;
 import com.clexp.user.dto.ShortUserResponse;
 import com.clexp.user.dto.UserResponse;
 import com.clexp.user.dto.UserUpdateRequest;
@@ -77,8 +76,9 @@ public class UserService {
 
                 return userRepository.save(user)
                     .flatMap(savedUser ->
-                        updateUserLanguages(userId, request.getLanguages())
-                            .then(updateUserInterests(userId, request.getInterests()))
+                        updateUserInterests(userId, request.getInterests())
+                            .then(updateUserLanguagesWithStatus(userId, request.getKnownLanguages(), UserLanguageStatus.KNOWN))
+                            .then(updateUserLanguagesWithStatus(userId, request.getLearningLanguages(), UserLanguageStatus.LEARNING))
                             .then(mapToUserResponse(user, userId))
                     );
             });
@@ -138,17 +138,17 @@ public class UserService {
             .map(this::mapToInterestDto);
     }
 
-    private Mono<Void> updateUserLanguages(UUID userId, List<LanguagePreference> languages) {
+    private Mono<Void> updateUserLanguagesWithStatus(UUID userId, List<UUID> languages, UserLanguageStatus status) {
         if (languages == null) return Mono.empty();
         
-        return userLanguageRepository.deleteAllByUserId(userId)
+        return userLanguageRepository.deleteAllByUserIdAndStatus(userId, status)
             .thenMany(Flux.fromIterable(languages))
-            .flatMap(lang -> 
+            .flatMap(languageId -> 
                 userLanguageRepository.save(
                     UserLanguage.builder()
                         .userId(userId)
-                        .languageId(lang.getLanguageId())
-                        .status(lang.getStatus())
+                        .languageId(languageId)
+                        .status(status)
                         .build()
                 )
             )
@@ -204,7 +204,7 @@ public class UserService {
             .build();
     }
 
-    /** Флаг подписки. Возвращает null если currentUserId == null. */
+    /** Флаг подписки. Возвращает false если currentUserId == null. */
     private Mono<Boolean> getIsSubscribed(UUID currentUserId, UUID targetUserId) {
         if (currentUserId == null || currentUserId.equals(targetUserId))
             return Mono.just(false);

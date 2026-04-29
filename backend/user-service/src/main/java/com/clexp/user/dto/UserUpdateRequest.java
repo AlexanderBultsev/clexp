@@ -16,6 +16,7 @@ public class UserUpdateRequest {
 
     @NotNull(message = "Role is required")
     private UserRole role;
-    private List<LanguagePreference> languages;
+    private List<UUID> knownLanguages;
+    private List<UUID> learningLanguages;
     private List<UUID> interests;
 }
