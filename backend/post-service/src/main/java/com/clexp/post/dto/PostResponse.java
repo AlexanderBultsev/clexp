@@ -13,7 +13,7 @@ public class PostResponse {
     private UUID id;
     private UUID userId;
     private String content;
-    private String mediaUrls;
+    private List<String> mediaUrls;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Long commentsCount;

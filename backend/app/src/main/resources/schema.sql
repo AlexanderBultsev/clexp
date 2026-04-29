@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS posts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
-    media_urls TEXT,
+    media_urls TEXT[],
     created_at TIMESTAMP,
     updated_at TIMESTAMP
 );

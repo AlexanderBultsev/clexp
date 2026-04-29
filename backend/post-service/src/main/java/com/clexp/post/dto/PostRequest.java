@@ -9,6 +9,6 @@ import lombok.Data;
 public class PostRequest {
     @NotBlank
     private String content;
-    private String mediaUrls;
+    private List<String> mediaUrls;
     private List<UUID> interests;
 }
