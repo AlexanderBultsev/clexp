@@ -6,6 +6,6 @@ import com.clexp.post.model.Comment;
 import reactor.core.publisher.Flux;
 
 public interface CommentRepository extends R2dbcRepository<Comment, UUID> {
-    Flux<Comment> findByPostId(UUID postId);
-    Flux<Comment> findByUserId(UUID userId);
+    Flux<Comment> findAllByPostId(UUID postId);
+    Flux<Comment> findAllByUserId(UUID userId);
 }

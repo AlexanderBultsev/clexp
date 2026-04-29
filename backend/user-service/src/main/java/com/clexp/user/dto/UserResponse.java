@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.Set;
+import java.util.List;
 import java.util.UUID;
 import com.clexp.common.dto.InterestDto;
 import com.clexp.common.dto.LanguageDto;
@@ -21,8 +21,9 @@ public class UserResponse {
     private String bio;
     private String avatarUrl;
     private UserRole role;
+    private Boolean isSubscribed;
     private LocalDateTime lastLoginAt;
-    private Set<LanguageDto> knownLanguages;
-    private Set<LanguageDto> learningLanguages;
-    private Set<InterestDto> interests;
+    private List<LanguageDto> knownLanguages;
+    private List<LanguageDto> learningLanguages;
+    private List<InterestDto> interests;
 }

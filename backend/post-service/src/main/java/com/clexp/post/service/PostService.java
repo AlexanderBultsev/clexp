@@ -1,13 +1,17 @@
 package com.clexp.post.service;
 
+import com.clexp.post.repository.PostInterestRepository;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.clexp.common.dto.InterestDto;
 import com.clexp.common.exception.BusinessException;
+import com.clexp.common.model.Interest;
+import com.clexp.common.repository.InterestRepository;
 import com.clexp.post.dto.CommentRequest;
 import com.clexp.post.dto.CommentResponse;
 import com.clexp.post.dto.LikeResponse;
@@ -16,6 +20,7 @@ import com.clexp.post.dto.PostResponse;
 import com.clexp.post.model.Comment;
 import com.clexp.post.model.Like;
 import com.clexp.post.model.Post;
+import com.clexp.post.model.PostInterest;
 import com.clexp.post.repository.CommentRepository;
 import com.clexp.post.repository.LikeRepository;
 import com.clexp.post.repository.PostRepository;
@@ -33,6 +38,8 @@ public class PostService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final LikeRepository likeRepository;
+    private final PostInterestRepository postInterestRepository;
+    private final InterestRepository interestRepository;
 
     // Posts
 
@@ -46,6 +53,7 @@ public class PostService {
             .build();
         
         return postRepository.save(post)
+            .flatMap(savedPost -> savePostInterests(savedPost, request.getInterests()))
             .flatMap(savedPost -> mapToPostResponse(savedPost, currentUserId));
     }
 
@@ -61,7 +69,7 @@ public class PostService {
     }
 
     public Flux<PostResponse> getPostsByUserId(UUID currentUserId, UUID userId) {
-        return postRepository.findByUserId(userId)
+        return postRepository.findAllByUserId(userId)
             .flatMap(post -> mapToPostResponse(post, currentUserId));
     }
 
@@ -70,10 +78,12 @@ public class PostService {
         return postRepository.findById(postId)
                 .switchIfEmpty(Mono.error(new BusinessException("Post not found", HttpStatus.NOT_FOUND)))
                 .flatMap(existingPost -> {
-                    if (request.getContent() != null) existingPost.setContent(request.getContent());
+                    existingPost.setContent(request.getContent());
                     existingPost.setMediaUrls(request.getMediaUrls());
                     existingPost.setUpdatedAt(LocalDateTime.now());
-                    return postRepository.save(existingPost);
+                    return postInterestRepository.deleteAllByPostId(postId)
+                        .then(savePostInterests(existingPost, request.getInterests()))
+                        .then(postRepository.save(existingPost));
                 })
                 .flatMap(post -> mapToPostResponse(post, currentUserId));
     }
@@ -88,7 +98,7 @@ public class PostService {
     public Mono<CommentResponse> createComment(UUID currentUserId, UUID postId, CommentRequest request) {
         return postRepository.existsById(postId)
             .flatMap(postExists -> {
-                // Проверка на существование поста
+                
                 if (!postExists) return Mono.error(new BusinessException("Post not found", HttpStatus.NOT_FOUND));
 
                 Comment comment = Comment.builder()
@@ -111,12 +121,12 @@ public class PostService {
     }
 
     public Flux<CommentResponse> getCommentsByPostId(UUID postId) {
-        return commentRepository.findByPostId(postId)
+        return commentRepository.findAllByPostId(postId)
                 .map(this::mapToCommentResponse);
     }
 
     public Flux<CommentResponse> getCommentsByUserId(UUID userId) {
-        return commentRepository.findByUserId(userId)
+        return commentRepository.findAllByUserId(userId)
                 .map(this::mapToCommentResponse);
     }
 
@@ -142,11 +152,9 @@ public class PostService {
     public Mono<LikeResponse> createLike(UUID currentUserId, UUID postId) {
         return postRepository.existsById(postId)
             .flatMap(postExists -> {
-                // Проверка на существование поста
                 if (!postExists) return Mono.error(new BusinessException("Post not found", HttpStatus.NOT_FOUND));
                 return likeRepository.existsByUserIdAndPostId(currentUserId, postId)
                     .flatMap(likeExists -> {
-                        // Проверка на повторное создание лайка
                         if (likeExists) return Mono.error(new BusinessException("Already liked this post", HttpStatus.CONFLICT));
                     
                         Like like = Like.builder()
@@ -162,12 +170,12 @@ public class PostService {
     }
 
     public Flux<LikeResponse> getLikesByPostId(UUID postId) {
-        return likeRepository.findByPostId(postId)
+        return likeRepository.findAllByPostId(postId)
                 .map(this::mapToLikeResponse);
     }
 
     public Flux<LikeResponse> getLikesByUserId(UUID userId) {
-        return likeRepository.findByUserId(userId)
+        return likeRepository.findAllByUserId(userId)
                 .map(this::mapToLikeResponse);
     }
 
@@ -183,13 +191,45 @@ public class PostService {
         return likeRepository.deleteByUserIdAndPostId(currentUserId, postId);
     }
 
-    // Mappers
+    // Utils
 
-    private Mono<PostResponse> mapToPostResponse(Post post, UUID userId) {
+    private Mono<Post> savePostInterests(Post post, List<UUID> interestsIds) {
+        if (interestsIds == null || interestsIds.isEmpty())
+            return Mono.just(post);
+
+        UUID postId = post.getId();
+
+        return Flux.fromIterable(interestsIds)
+            .flatMap(interestsId -> 
+                postInterestRepository.save(
+                    PostInterest.builder()
+                        .postId(postId)
+                        .interestId(interestsId)
+                        .build()
+                ))
+            .then(Mono.just(post));
+    }
+
+    private Mono<List<InterestDto>> getPostInterests(UUID postId) {
+        return postInterestRepository.findAllByPostId(postId)
+            .flatMap(postInterest -> interestRepository.findById(postInterest.getInterestId()))
+            .map(this::mapToInterestDto)
+            .collectList();
+    }
+
+    private InterestDto mapToInterestDto(Interest interest) {
+        return InterestDto.builder()
+            .id(interest.getId())
+            .name(interest.getName())
+            .build();
+    }
+
+    public Mono<PostResponse> mapToPostResponse(Post post, UUID currentUserId) {
         return Mono.zip(
             getCommentsByPostId(post.getId()).count(),
             getLikesByPostId(post.getId()).count(),
-            getIsLikedByUser(userId, post.getId())
+            getIsLikedByUser(currentUserId, post.getId()),
+            getPostInterests(post.getId())
         ).map(tuple ->  PostResponse.builder()
                 .id(post.getId())
                 .userId(post.getUserId())
@@ -200,6 +240,7 @@ public class PostService {
                 .commentsCount(tuple.getT1())
                 .likesCount(tuple.getT2())
                 .isLiked(tuple.getT3())
+                .interests(tuple.getT4())
                 .build()
             );
     }

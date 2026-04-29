@@ -3,6 +3,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Удаляем существующие таблицы
 DROP TABLE IF EXISTS user_languages CASCADE;
 DROP TABLE IF EXISTS user_interests CASCADE;
+DROP TABLE IF EXISTS post_interests CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS languages CASCADE;
 DROP TABLE IF EXISTS interests CASCADE;
@@ -10,7 +11,6 @@ DROP TABLE IF EXISTS likes CASCADE;
 DROP TABLE IF EXISTS comments CASCADE;
 DROP TABLE IF EXISTS posts CASCADE;
 
--- Таблица пользователей
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     username VARCHAR(50) NOT NULL UNIQUE,
@@ -27,14 +27,19 @@ CREATE TABLE IF NOT EXISTS users (
     last_login_at TIMESTAMP
 );
 
--- Таблица языков
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    source_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    target_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS languages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     code VARCHAR(10) NOT NULL UNIQUE,
     name VARCHAR(100) NOT NULL
 );
 
--- Связь пользователя с языками
 CREATE TABLE IF NOT EXISTS user_languages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -43,13 +48,11 @@ CREATE TABLE IF NOT EXISTS user_languages (
     UNIQUE(user_id, language_id)
 );
 
--- Таблица интересов
 CREATE TABLE IF NOT EXISTS interests (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(100) NOT NULL UNIQUE
 );
 
--- Связь пользователя с интересами
 CREATE TABLE IF NOT EXISTS user_interests (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -64,6 +67,13 @@ CREATE TABLE IF NOT EXISTS posts (
     media_urls TEXT,
     created_at TIMESTAMP,
     updated_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS post_interests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    interest_id UUID NOT NULL REFERENCES interests(id) ON DELETE CASCADE,
+    UNIQUE(post_id, interest_id)
 );
 
 CREATE TABLE IF NOT EXISTS comments (

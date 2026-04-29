@@ -45,7 +45,6 @@ public class AuthService {
                     .username(request.getUsername())
                     .email(request.getEmail())
                     .passwordHash(passwordEncoder.encode(request.getPassword()))
-                    .age(request.getAge())
                     .role(request.getRole())
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
