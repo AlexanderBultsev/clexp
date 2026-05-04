@@ -8,15 +8,17 @@ import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
+
 import com.clexp.auth.service.JwtService;
 import com.clexp.common.exception.BusinessException;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 @Slf4j
 @RequiredArgsConstructor
-public class JwtAuthenticationFilter implements WebFilter {
+public class WebSocketAuthenticationFilter implements WebFilter {
     
     private final JwtService jwtService;
     private final ReactiveUserDetailsServiceImpl userDetailsService;
@@ -24,26 +26,29 @@ public class JwtAuthenticationFilter implements WebFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         String path = exchange.getRequest().getPath().value();
-
-        // Пропускаем публичные эндпоинты и WebSocket (WebSocket обрабатывается своим фильтром)
-        if (isPublicEndpoint(path) || path.startsWith("/ws/")) {
+        
+        // Применяем фильтр только к WebSocket эндпоинтам
+        if (!path.startsWith("/ws/")) {
             return chain.filter(exchange);
         }
         
-        String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        log.debug("WebSocket authentication for: {}", path);
         
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            log.debug("No token for path: {}", path);
-            return Mono.error(new BusinessException("Missing token", HttpStatus.UNAUTHORIZED));
+        // Пытаемся получить токен из query параметра (для WebSocket удобнее)
+        String token = extractToken(exchange);
+        
+        if (token == null) {
+            log.warn("WebSocket connection attempt without token");
+            return exchange.getResponse().setComplete();
         }
-        
-        String token = authHeader.substring(7);
-        log.debug("Authenticating request to: {}", path);
         
         return jwtService.extractUsername(token)
             .flatMap(username -> 
                 userDetailsService.findByUsername(username)
-                    .switchIfEmpty(Mono.error(new BusinessException("User not found", HttpStatus.UNAUTHORIZED)))
+                    .switchIfEmpty(Mono.defer(() -> {
+                        log.warn("User not found for WebSocket connection: {}", username);
+                        return Mono.error(new BusinessException("User not found", HttpStatus.UNAUTHORIZED));
+                    }))
                     .flatMap(userDetails -> 
                         jwtService.validateToken(token, userDetails)
                             .flatMap(isValid -> {
@@ -56,14 +61,32 @@ public class JwtAuthenticationFilter implements WebFilter {
                                     return chain.filter(exchange)
                                         .contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth));
                                 } else {
-                                    return Mono.error(new BusinessException("Invalid token", HttpStatus.UNAUTHORIZED));
+                                    log.warn("Invalid JWT token for WebSocket connection");
+                                    return exchange.getResponse().setComplete();
                                 }
                             })
                     )
-            );
+            )
+            .onErrorResume(error -> {
+                log.error("Error authenticating WebSocket connection", error);
+                return exchange.getResponse().setComplete();
+            });
     }
-
-    private boolean isPublicEndpoint(String path) {
-        return path.startsWith("/api/auth/");
+    
+    private String extractToken(ServerWebExchange exchange) {
+        // Сначала пробуем получить из query параметра (для WebSocket удобнее)
+        String token = exchange.getRequest().getQueryParams().getFirst("token");
+        
+        if (token != null) {
+            return token;
+        }
+        
+        // Если нет в query - пробуем из заголовка
+        String bearerToken = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        
+        return null;
     }
 }

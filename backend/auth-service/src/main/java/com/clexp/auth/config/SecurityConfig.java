@@ -10,10 +10,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 import com.clexp.auth.security.JwtAuthenticationFilter;
+import com.clexp.auth.security.WebSocketAuthenticationFilter;
 import com.clexp.auth.security.ReactiveUserDetailsServiceImpl;
 import com.clexp.auth.service.JwtService;
 import lombok.RequiredArgsConstructor;
-
 
 @Configuration
 @EnableWebFluxSecurity
@@ -27,6 +27,9 @@ public class SecurityConfig {
     SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         JwtAuthenticationFilter jwtAuthenticationFilter =
             new JwtAuthenticationFilter(jwtService, userDetailsService);
+        
+        WebSocketAuthenticationFilter webSocketAuthenticationFilter = 
+            new WebSocketAuthenticationFilter(jwtService, userDetailsService);
 
         return http
             .csrf(ServerHttpSecurity.CsrfSpec::disable)
@@ -36,9 +39,11 @@ public class SecurityConfig {
             .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
             .authorizeExchange(exchanges -> exchanges
                 .pathMatchers("/api/auth/**").permitAll()
+                .pathMatchers("/ws/**").permitAll() // WebSocket обрабатывается своим фильтром
                 .anyExchange().authenticated()
             )
-            .addFilterBefore(jwtAuthenticationFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+            .addFilterAt(webSocketAuthenticationFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+            .addFilterAt(jwtAuthenticationFilter, SecurityWebFiltersOrder.AUTHENTICATION)
             .build();
     }
 
