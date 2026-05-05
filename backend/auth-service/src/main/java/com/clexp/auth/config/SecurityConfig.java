@@ -39,7 +39,10 @@ public class SecurityConfig {
             .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
             .authorizeExchange(exchanges -> exchanges
                 .pathMatchers("/api/auth/**").permitAll()
-                .pathMatchers("/ws/**").permitAll() // WebSocket обрабатывается своим фильтром
+                .pathMatchers("/ws/**").permitAll()
+                // Документация
+                .pathMatchers("/swagger-ui/**").permitAll()
+                .pathMatchers("/v3/api-docs/**").permitAll()
                 .anyExchange().authenticated()
             )
             .addFilterAt(webSocketAuthenticationFilter, SecurityWebFiltersOrder.AUTHENTICATION)
