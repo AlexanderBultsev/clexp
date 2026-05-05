@@ -1,20 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Удаляем существующие таблицы
-DROP TABLE IF EXISTS user_languages CASCADE;
-DROP TABLE IF EXISTS user_interests CASCADE;
-DROP TABLE IF EXISTS post_interests CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
-DROP TABLE IF EXISTS languages CASCADE;
-DROP TABLE IF EXISTS interests CASCADE;
-DROP TABLE IF EXISTS likes CASCADE;
-DROP TABLE IF EXISTS comments CASCADE;
-DROP TABLE IF EXISTS posts CASCADE;
-DROP TABLE IF EXISTS chats CASCADE;
-DROP TABLE IF EXISTS chat_users CASCADE;
-DROP TABLE IF EXISTS messages CASCADE;
-DROP TABLE IF EXISTS message_statuses CASCADE;
-
 -- Пользователи
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -145,7 +130,8 @@ CREATE TABLE IF NOT EXISTS message_statuses (
 );
 
 -- Начальные данные (языки)
-INSERT INTO languages (code, name) VALUES
+INSERT INTO languages (code, name)
+SELECT * FROM (VALUES
     ('en', 'English'),
     ('ru', 'Russian'),
     ('es', 'Spanish'),
@@ -172,13 +158,16 @@ INSERT INTO languages (code, name) VALUES
     ('el', 'Greek'),
     ('th', 'Thai'),
     ('vi', 'Vietnamese')
-ON CONFLICT (code) DO NOTHING;
+) AS v(code, name)
+WHERE NOT EXISTS (SELECT 1 FROM languages WHERE languages.code = v.code);
 
 -- Начальные данные (интересы)
-INSERT INTO interests (name) VALUES
+INSERT INTO interests (name)
+SELECT name FROM (VALUES
     ('Music'), ('Cinema'), ('History'), ('Sport'), 
     ('Food'), ('Art'), ('Travel'), ('Literature'),
     ('Technology'), ('Photography'), ('Gaming'), ('Fashion'),
     ('Nature'), ('Science'), ('Dancing'), ('Theatre'),
     ('Architecture'), ('Philosophy'), ('Psychology'), ('Business')
-ON CONFLICT (name) DO NOTHING;
+) AS v(name)
+WHERE NOT EXISTS (SELECT 1 FROM interests WHERE interests.name = v.name);

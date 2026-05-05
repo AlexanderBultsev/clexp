@@ -1,0 +1,20 @@
+spring:
+  r2dbc:
+    url: ${SPRING_R2DBC_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    pool:
+      initial-size: 5
+      max-size: 10
+  
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token:
+    expiration: ${JWT_ACCESS_EXPIRATION}
+  refresh-token:
+    expiration: ${JWT_REFRESH_EXPIRATION}
