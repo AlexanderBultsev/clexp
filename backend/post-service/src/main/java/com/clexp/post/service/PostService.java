@@ -29,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import org.springframework.data.domain.Pageable;
 
 @Slf4j
 @Service
@@ -263,5 +264,10 @@ public class PostService {
             .postId(like.getPostId())
             .createdAt(like.getCreatedAt())
             .build();
+    }
+
+    public Flux<PostResponse> searchPostsByContent(String content, UUID currentUserId, Pageable pageable) {
+        return postRepository.findByContentContainingIgnoreCase(content, pageable)
+            .flatMap(post -> mapToPostResponse(post, currentUserId));
     }
 }

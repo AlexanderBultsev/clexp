@@ -7,6 +7,7 @@ import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import org.springframework.data.repository.query.Param;
 import com.clexp.post.model.Post;
 import reactor.core.publisher.Flux;
+import org.springframework.data.domain.Pageable;
 
 public interface PostRepository extends R2dbcRepository<Post, UUID> {
 
@@ -24,4 +25,6 @@ public interface PostRepository extends R2dbcRepository<Post, UUID> {
             @Param("currentUserId") UUID     currentUserId,
             @Param("cursor")        LocalDateTime  cursor,
             @Param("limit")         int      limit);
+
+    Flux<Post> findByContentContainingIgnoreCase(String content, Pageable pageable);
 }
