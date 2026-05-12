@@ -32,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import org.springframework.data.domain.Pageable;
 
 @Slf4j
 @Service
@@ -241,5 +242,10 @@ public class UserService {
             .id(interest.getId())
             .name(interest.getName())
             .build();
+    }
+
+    public Flux<UserResponse> searchUsersByUsername(String username, UUID currentUserId, Pageable pageable) {
+        return userRepository.findByUsernameContainingIgnoreCase(username, pageable)
+            .flatMap(user -> mapToUserResponse(user, currentUserId));
     }
 }
