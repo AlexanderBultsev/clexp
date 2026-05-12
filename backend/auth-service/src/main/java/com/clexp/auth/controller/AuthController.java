@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.clexp.auth.dto.AuthResponse;
 import com.clexp.auth.dto.LoginRequest;
+import com.clexp.auth.dto.RefreshRequest;
 import com.clexp.auth.dto.RegisterRequest;
 import com.clexp.auth.service.AuthService;
 import jakarta.validation.Valid;
@@ -29,5 +30,9 @@ public class AuthController {
     public Mono<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
     }
-    
+
+    @PostMapping("/auth/refresh")
+    public Mono<AuthResponse> refresh(@RequestBody RefreshRequest request) {
+        return authService.refreshTokens(request.getRefreshToken());
+    }
 }

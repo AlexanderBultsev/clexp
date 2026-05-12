@@ -91,6 +91,23 @@ public class AuthService {
                     );
             });
     }
+
+    public Mono<AuthResponse> refreshTokens(String refreshToken) {
+        return jwtService.extractUserId(refreshToken)
+            .flatMap(userId -> userRepository.findById(userId))
+            .switchIfEmpty(Mono.error(new BusinessException("Invalid refresh token", HttpStatus.UNAUTHORIZED)))
+            .flatMap(user -> 
+                Mono.zip(
+                    jwtService.generateAccessToken(createUserDetails(user), user.getId()),
+                    jwtService.generateRefreshToken(createUserDetails(user), user.getId())
+                ).map(tokens -> 
+                    AuthResponse.builder()
+                        .accessToken(tokens.getT1())
+                        .refreshToken(tokens.getT2())
+                        .build()
+                )
+            );
+    }
     
     private org.springframework.security.core.userdetails.User createUserDetails(User user) {
         return new org.springframework.security.core.userdetails.User(

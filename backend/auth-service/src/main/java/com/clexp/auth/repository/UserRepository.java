@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import com.clexp.common.model.User;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import org.springframework.data.domain.Pageable;
 
 @Repository
 public interface UserRepository extends R2dbcRepository<User, UUID> {
@@ -33,4 +34,6 @@ public interface UserRepository extends R2dbcRepository<User, UUID> {
             @Param("currentUserId") UUID     currentUserId,
             @Param("cursor")        LocalDateTime  cursor,
             @Param("limit")         int      limit);
+
+    Flux<User> findByUsernameContainingIgnoreCase(String username, Pageable pageable);
 }
